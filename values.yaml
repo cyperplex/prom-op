@@ -1,0 +1,73 @@
+global:
+  rbac:
+    pspEnabled: true
+
+kubelet:
+  enabled: true
+  namespace: kube-system
+  serviceMonitor:
+    https: true # https://github.com/coreos/prometheus-operator/issues/982
+    tlsConfig:
+      caFile: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+      insecureSkipVerify: true
+    port: https-metrics
+
+kubeControllerManager:
+  enabled: true
+  insecureSkipVerify: true
+  serviceMonitor:
+    selector:
+      app: prometheus-operator-kube-controller-manager
+  service:
+    port: 10252
+    targetPort: 10252
+    selector:
+      k8s-app: kube-controller-manager
+
+kubeproxy:
+  enabled: false
+  namespace: kube-system 
+  service:
+    port: 10249
+    selector:
+      k8s-app: kube-proxy
+
+  serviceMonitor:
+    insecureSkipVerify: true
+    https: false
+
+kubeScheduler:
+  enabled: true
+  insecureSkipVerify: true
+  serviceMonitor:
+    https: false
+    selector:
+      app: prometheus-operator-kube-scheduler
+  service:
+    selector:
+      k8s-app: kube-scheduler
+
+kubeEtcd:
+  enabled: true
+  service:
+    port: 4001
+    targetPort: 4001
+    selector:
+      k8s-app: etcd-manager-main
+  serviceMonitor:
+    scheme: https
+    insecureSkipVerify: true
+    endpoints:
+    interval: 15s
+    port: https-metrics
+    caFile: /etc/prometheus/secrets/etcd-certs/etcd-ca.crt
+    certFile: /etc/prometheus/secrets/etcd-certs/etcd-client.crt
+    keyFile: /etc/prometheus/secrets/etcd-certs/etcd-client.key
+    jobLabel: component
+    namespaceSelector:
+      matchNames:
+      - kube-system
+    selector:
+      matchLabels:
+        app: exporter-kube-etcd
+        component: kube-etcd
