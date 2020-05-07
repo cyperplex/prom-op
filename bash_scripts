@@ -1,0 +1,14 @@
+  function create_etcd_secret() {
+    MONITORING_NAMESPACE = "monitoring"
+    # Adding commands to create the secrets required to enable ETCD monitoring, this is a requirement or the promehteus operator
+    export Etcd_Secret_Result=$(kubectl get secrets -n $MONITORING_NAMESPACE | grep -c etcd)
+    if [ "$Etcd_Secret_Result" -le 0 ]; then
+        echo "Creating ETCD secret file"
+        podname=$(kubectl get pods -o=jsonpath='{.items[0].metadata.name}' -l k8s-app=kube-apiserver -n kube-system)
+        echo "Current ETCD master running the etcd instance is $podname"
+        kubectl create secret generic etcd-certs -n $MONITORING_NAMESPACE --from-literal=etcd-ca.crt="$(kubectl exec $podname -nkube-system -- cat /etc/kubernetes/pki/kube-apiserver/etcd-ca.crt)" --from-literal=etcd-client.crt="$(kubectl exec $podname -nkube-system -- cat /etc/kubernetes/pki/kube-apiserver/etcd-client.crt)" --from-literal=etcd-client.key="$(kubectl exec $podname -nkube-system -- cat /etc/kubernetes/pki/kube-apiserver/etcd-client.key)";
+    else
+        echo "ETCD Secret is already in place in $MONITORING_NAMESPACE"
+    fi
+
+  }
